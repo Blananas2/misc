@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8" />
+<title>Kiki dice thing - HTML5</title>
+<style>
+html { background-color: #111; }
+body { width: 1000px; margin: 0 auto; padding: 1em; }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="1000" height="1000"></canvas>
+<script>
+const canvas = document.getElementById("canvas");
+
+document.body.addEventListener("keydown", (e) => { processKey(e.key)});
+
+const CANVAS_LENGTH = 1000;
+const VOLUME_SCALE = 300;
+const CIRCLE_SIZE = 20;
+const Z_OFFSET = 2;
+const ROTATION_ANGLE = Math.PI/64;
+
+let rotationVector = [0, 0, 0];
+let points = [ //cube
+    [1, 1, 1],
+    [1, 1, -1],
+    [1, -1, 1],
+    [1, -1, -1],
+    [-1, 1, 1],
+    [-1, 1, -1],
+    [-1, -1, 1],
+    [-1, -1, -1]
+];
+
+draw();
+
+function draw() { //draw a frame
+    if (canvas.getContext) {
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#fff";
+        points.forEach(point => {
+            drawCirc(ctx, point);
+        });
+        
+        /*
+        let m2d = [];
+        points.forEach(point => {
+            m2d.push(convert3d2d(point[0], point[1], point[2]));
+        });
+
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "red";
+        for (r = 0; r <= 3; r++) {
+            ctx.moveTo(m2d[r][0], m2d[r][1]);
+            ctx.lineTo(m2d[4+r][0], m2d[4+r][1]);
+            ctx.stroke();
+        }
+        */
+    }
+}
+
+function processKey(key) {
+    switch (key.toUpperCase()) {
+        case "Q": rotationVector[1] -= ROTATION_ANGLE; break;
+        case "W": rotationVector[2] -= ROTATION_ANGLE; break;
+        case "E": rotationVector[1] += ROTATION_ANGLE; break;
+        case "A": rotationVector[0] += ROTATION_ANGLE; break;
+        case "S": rotationVector[2] += ROTATION_ANGLE; break;
+        case "D": rotationVector[0] -= ROTATION_ANGLE; break;
+    }
+    draw();
+}
+
+function drawCirc(ctx, p) {
+    let rp = rotate(p[0], p[1], p[2], rotationVector[0], rotationVector[1], rotationVector[2]);
+    let v2d = convert3d2d(rp[0], rp[1], rp[2]);
+    ctx.beginPath();
+    ctx.arc(v2d[0], v2d[1], CIRCLE_SIZE/(rp[2]+Z_OFFSET), 0, 2*Math.PI);
+    ctx.fill();
+}
+
+function rotate(ox, oy, oz, dp, dy, dr) { //https://stackoverflow.com/questions/34050929/3d-point-rotation-algorithm
+    return [
+        Math.cos(dy)*Math.cos(dp)*ox + (Math.cos(dy)*Math.sin(dp)*Math.sin(dr) - Math.sin(dy)*Math.cos(dr))*oy + (Math.cos(dy)*Math.sin(dp)*Math.cos(dr) + Math.sin(dy)*Math.sin(dr))*oz,
+        Math.sin(dy)*Math.cos(dp)*ox + (Math.sin(dy)*Math.sin(dp)*Math.sin(dr) + Math.cos(dy)*Math.cos(dr))*oy + (Math.sin(dy)*Math.sin(dp)*Math.cos(dr) - Math.cos(dy)*Math.sin(dr))*oz,
+        -Math.sin(dp)*ox + Math.cos(dp)*Math.sin(dr)*oy + Math.cos(dp)*Math.cos(dr)*oz
+    ];
+}
+
+function convert3d2d(x, y, z) {
+    return [x/(z+Z_OFFSET)*VOLUME_SCALE+CANVAS_LENGTH/2, y/(z+Z_OFFSET)*VOLUME_SCALE+CANVAS_LENGTH/2];
+}
+
+function RNG(x) { //returns integer from 0 to x-1
+    return Math.floor(Math.random() * x);
+}
+
+</script>
+</body>
+</html>
