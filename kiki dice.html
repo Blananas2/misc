@@ -20,18 +20,22 @@ const VOLUME_SCALE = 300;
 const CIRCLE_SIZE = 20;
 const Z_OFFSET = 2;
 const ROTATION_ANGLE = Math.PI/64;
+const SPHERE_SIZE = 1.5;
 
 let rotationVector = [0, 0, 0];
-let points = [ //cube
-    [1, 1, 1],
-    [1, 1, -1],
-    [1, -1, 1],
-    [1, -1, -1],
-    [-1, 1, 1],
-    [-1, 1, -1],
-    [-1, -1, 1],
-    [-1, -1, -1]
+let points = [ 
+    //cube
+    //[1, 1, 1],
+    //[1, 1, -1],
+    //[1, -1, 1],
+    //[1, -1, -1],
+    //[-1, 1, 1],
+    //[-1, 1, -1],
+    //[-1, -1, 1],
+    //[-1, -1, -1]
 ];
+
+sphere();
 
 draw();
 
@@ -79,7 +83,7 @@ function drawCirc(ctx, p) {
     let rp = rotate(p[0], p[1], p[2], rotationVector[0], rotationVector[1], rotationVector[2]);
     let v2d = convert3d2d(rp[0], rp[1], rp[2]);
     ctx.beginPath();
-    ctx.arc(v2d[0], v2d[1], CIRCLE_SIZE/(rp[2]+Z_OFFSET), 0, 2*Math.PI);
+    ctx.arc(v2d[0], v2d[1], CIRCLE_SIZE/Math.sqrt(rp[2]+Z_OFFSET) /*Math.sqrt(rp[2]+Z_OFFSET)*CIRCLE_SIZE*/, 0, 2*Math.PI);
     ctx.fill();
 }
 
@@ -99,6 +103,33 @@ function RNG(x) { //returns integer from 0 to x-1
     return Math.floor(Math.random() * x);
 }
 
+function sphere() {
+    for (a = 0; a < 16; a++) {
+        pushIfDistinct([0, Math.sin(a*Math.PI/8)*SPHERE_SIZE, Math.cos(a*Math.PI/8)*SPHERE_SIZE]);
+        pushIfDistinct([Math.sin(a*Math.PI/8)*SPHERE_SIZE, 0, Math.cos(a*Math.PI/8)*SPHERE_SIZE]);
+        pushIfDistinct([Math.sin(a*Math.PI/8)*SPHERE_SIZE, Math.cos(a*Math.PI/8)*SPHERE_SIZE, 0]);
+    }
+}
+
+function pushIfDistinct(b) { //this only gets rid of ONE point for sphere idk what's up; if that's not a tell that i have no idea what i'm doing i don't know what is
+    let v = true;
+    points.forEach(point => {
+        if (arraysMatch(point, b) && v) {
+            v = false;
+        }
+    });
+    if (v) { points.push(b); }
+}
+
+function arraysMatch(v, w) {
+    if (v.length != w.length) { return false; }
+    for (e = 0; e < v.length; e++) {
+        if (v[e] != w[e]) {
+            return false;
+        }
+    }
+    return true;
+}
 </script>
 </body>
 </html>
