@@ -1,13 +1,43 @@
 //This script attempts to assign Periodic Table Symbols to Keep Talking and Nobody Explodes modules automatically.
 
 const fs = require("fs");
-//this modules.txt file is all modules as listed when the main page of the repo is sorted from oldest to newest
-const mx = fs.readFileSync("modules.txt").toString().replaceAll("’", "'").replaceAll("×", "x"); //change these two symbols to easier to access characters
-const modules = mx.split('\n');
+let repo = require("./repo_raw.json"); //literally the entire raw json, which you can get from https://ktane.timwi.de/json/raw
+repo = repo.KtaneModules;
 let lower = [];
 const pref = 4; //preferred length; in all my testing there's no need to bring this higher than 4.
 let outputAbs = [];
 let abort = false;
+let modules = [];
+let literalNames = [];
+
+repo.forEach(element => { //fill the modules field
+  if ((element.Type == "Needy" || element.Type == "Regular") && !element.TranslationOf) {
+    literalNames.push(element.Name);
+    if (/^[\x00-\x7F’×]*$/.test(element.Name)) {
+      modules.push(element.Name.replaceAll("’", "'").replaceAll("×", "x")); //change these two symbols to easier to access characters
+    } else { //this seperates the non-ASCII characters; the motivation here is Maze³ not showing the ³
+      let c = element.Name;
+      let ac = c[0];
+      let spaceman = 0;
+      for (h = 1; h < c.length; h++) {
+        if (!/^[\x00-\x7F’×]*$/.test(c[h])) {
+          ac += " ";
+          spaceman++;
+
+          if (spaceman == 3) { //this hack is very dumb, in short i needed to make Изложение sensible, and trying to make the "over four words" second below use lastIndexOf completely failed? idunno why but this works
+            ac += c.substring(h);
+            break;
+          }
+        }
+        ac += c[h];
+      }
+      console.log(ac);
+      modules.push(ac.replaceAll(/ +/g, " "));
+    }
+  }
+});
+
+
 
 for (n = 0; n < modules.length; n++) { //take the names of every module on the repo, in release order
   lower.push(modules[n].toLowerCase());
@@ -17,7 +47,7 @@ for (m = 0; m < modules.length; m++) { //then for every module
   let moduleName = modules[m];
 
   let naiveAb = camel(firstLetters(moduleName)); //take the first letter of each word
-  if (!outputAbs.includes(naiveAb) && modulesDoesNotInclude(naiveAb) && naiveAb.length <= pref) { //if that works, great!
+  if (!outputAbs.includes(naiveAb) && naiveAb.length <= pref) { //if that works, great!
     outputAbs.push(naiveAb);
     continue;
   }
@@ -37,7 +67,7 @@ for (m = 0; m < modules.length; m++) { //then for every module
       wordCount -= 1;
     }
     naiveAb = camel(firstLetters(name.join(" ")));
-    if (!outputAbs.includes(naiveAb) && modulesDoesNotInclude(naiveAb) && naiveAb.length <= pref) { //if the reduction is fine, great!
+    if (!outputAbs.includes(naiveAb) && naiveAb.length <= pref) { //if the reduction is fine, great!
       outputAbs.push(naiveAb);
       continue;
     }
@@ -61,7 +91,7 @@ for (m = 0; m < modules.length; m++) { //then for every module
         ab = camel(ab);
       }
 
-      if (!outputAbs.includes(ab) && modulesDoesNotInclude(ab) && newAb == "") { //if something works, great!
+      if (!outputAbs.includes(ab) && newAb == "") { //if something works, great!
         newAb = ab;
       }
     }
@@ -74,7 +104,17 @@ for (m = 0; m < modules.length; m++) { //then for every module
     continue;
   }
 
-  if (moduleName.length <= pref) { //if the mod name itself is small enough, great!
+  if (moduleName.length <= pref - 1) { //if the mod name itself is small enough, great! Though a backtick will be added so small enough is 3.
+    outputAbs.push('`' + camel(moduleName));
+    continue;
+  }
+
+  if (moduleName.length == pref) { //if the above fails, just use the full name so that it can actually go through without aborting
+    if (outputAbs.includes(camel(moduleName))) {
+      abort = true;
+      console.log("ABORTED AT: " + name);
+      break;
+    }
     outputAbs.push(camel(moduleName));
     continue;
   }
@@ -111,7 +151,7 @@ for (m = 0; m < modules.length; m++) { //then for every module
       newerAb += (q == maxIx) ? newWord : name[q][0];
     }
     newerAb = camel(newerAb);
-    if (!outputAbs.includes(newerAb) && modulesDoesNotInclude(newerAb) && newerAb.length == pref) { //if something works, great! note we REQUIRE length 4
+    if (!outputAbs.includes(newerAb) && newerAb.length == pref) { //if something works, great! note we REQUIRE length 4
       newAb = newerAb;
     }
     if (number > 1023) { //provided we don't need to abort (because it couldn't find anything)
@@ -134,7 +174,7 @@ function firstLetters (n) { //this function takes the first letters of each word
 
 function camel (s) { //this function takes a string and converts it to one where only the first letter is capitalized, like elements should be
   if (s.length == 1) { return s.toUpperCase(); }
-  if (s == "") { console.log("PANIC. There is an empty string for a module!"); abort = true; return null; }
+  if (s == "") { return ""; }
   return s[0].toUpperCase() + s.slice(1).toLowerCase();
 }
 
@@ -142,13 +182,17 @@ function rev (s) { //this function reverses a string
   return s.split("").reverse().join("");
 }
 
-function modulesDoesNotInclude (m) { //this method checks to make sure an abbreviation isn't the same as a module's name ignoring case
-  return !lower.includes(m.toLowerCase());
+for (o = 0; o < outputAbs.length; o++) {
+  if (outputAbs.indexOf(outputAbs[o]) != o) {
+    abort = true;
+    console.log("DUPLICATE DETECTED: " + outputAbs[o] + " is " + modules[o] + " and " + modules[outputAbs.indexOf(outputAbs[o])]);
+    break;
+  }
 }
 
 if (!abort) { //and finally write to a file if everything's above board
   for (d = 0; d < modules.length; d++) {
-    outputAbs[d] = outputAbs[d].padEnd(pref) + ("\t" + modules[d]);
+    outputAbs[d] = outputAbs[d].padEnd(pref) + ("\t" + literalNames[d]);
   }
   let output = outputAbs.join("\n");
   fs.writeFile('output.txt', output, err => {
