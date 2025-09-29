@@ -17,22 +17,25 @@ repo.forEach(element => { //fill the modules field
       modules.push(element.Name.replaceAll("’", "'").replaceAll("×", "x")); //change these two symbols to easier to access characters
     } else { //this seperates the non-ASCII characters; the motivation here is Maze³ not showing the ³
       let c = element.Name;
-      let ac = c[0];
-      let spaceman = 0;
-      for (h = 1; h < c.length; h++) {
-        if (!/^[\x00-\x7F’×]*$/.test(c[h])) {
-          ac += " ";
-          spaceman++;
+      if (c.split(" ").length >= 3) { 
+        modules.push(c);
+      } else {
+        let ac = c[0];
+        let spaceman = 0;
+        for (h = 1; h < c.length; h++) {
+          if (!/^[\x00-\x7F’×]*$/.test(c[h])) {
+            ac += " ";
+            spaceman++;
 
-          if (spaceman == 3) { //this hack is very dumb, in short i needed to make Изложение sensible, and trying to make the "over four words" second below use lastIndexOf completely failed? idunno why but this works
-            ac += c.substring(h);
-            break;
+            if (spaceman == 3) { //this hack is very dumb, in short i needed to make Изложение sensible, and trying to make the "over four words" second below use lastIndexOf completely failed? idunno why but this works
+              ac += c.substring(h);
+              break;
+            }
           }
+          ac += c[h];
         }
-        ac += c[h];
+        modules.push(ac.replaceAll(/ +/g, " "));
       }
-      console.log(ac);
-      modules.push(ac.replaceAll(/ +/g, " "));
     }
   }
 });
